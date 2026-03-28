@@ -10,6 +10,9 @@ export default function ErrandCard({ errand, currentBuilding, user, onClaim, onC
   const isLong = errand.description?.length > 60;
   const isPoster = user?.id === errand.user_id;
 
+  // Extract the avatar from the joined profiles table
+  const posterAvatar = errand.profiles?.avatar_url;
+
   return (
     <div className={`p-4 rounded-2xl border transition-all ${errand.status === 'claimed' ? 'bg-gray-50 opacity-70' : 'bg-white shadow-sm border-gray-100'}`}>
       <div className="flex justify-between items-start">
@@ -21,10 +24,20 @@ export default function ErrandCard({ errand, currentBuilding, user, onClaim, onC
             </span>
           </div>
 
-          {/* --- DISPLAYING THE FULL NAME --- */}
+          {/* --- DISPLAYING THE PROFILE PIC OR INITIAL --- */}
           <div className="flex items-center gap-2 mb-2">
-            <div className="w-6 h-6 bg-blue-100 rounded-full flex items-center justify-center text-[10px] font-bold text-blue-600">
-              {errand.full_name?.charAt(0) || 'N'}
+            <div className="w-6 h-6 bg-blue-100 rounded-full flex items-center justify-center overflow-hidden border border-blue-50">
+              {posterAvatar ? (
+                <img 
+                  src={posterAvatar} 
+                  className="w-full h-full object-cover" 
+                  alt={errand.full_name} 
+                />
+              ) : (
+                <span className="text-[10px] font-bold text-blue-600 uppercase">
+                  {errand.full_name?.charAt(0) || 'N'}
+                </span>
+              )}
             </div>
             <span className="text-[11px] font-bold text-slate-500 uppercase tracking-tight">
               {errand.full_name || 'Neighbor'}

@@ -146,12 +146,26 @@ function App() {
   };
 
   const fetchErrands = async () => {
-    let query = supabase.from('errands').select('*, buildings(name)');
+    // 🔗 Joining with profiles table to get the poster's avatar_url
+    let query = supabase
+      .from('errands')
+      .select(`
+        *,
+        buildings(name),
+        profiles:user_id (avatar_url)
+      `);
+
     if (viewMode === 'building') query = query.eq('building_id', currentBuilding.id);
-    const { data } = await query
+
+    const { data, error } = await query
       .neq('status', 'completed')
       .order('created_at', { ascending: false });
-    setErrands(data || []);
+
+    if (error) {
+      console.error("Fetch Error:", error.message);
+    } else {
+      setErrands(data || []);
+    }
   };
 
   const handlePostErrand = async (e) => {
