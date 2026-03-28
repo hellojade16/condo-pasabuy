@@ -1,4 +1,6 @@
-import React, { useState } from 'react'; // Added useState for the toggle
+import React, { useState } from 'react'; 
+import { formatDistanceToNow } from 'date-fns';
+
 
 export default function ErrandCard({ errand, currentBuilding, user, onClaim, onComplete, onDelete }) {
   const [isExpanded, setIsExpanded] = useState(false); // Toggle state
@@ -6,8 +8,6 @@ export default function ErrandCard({ errand, currentBuilding, user, onClaim, onC
   
   // Logic to check if text is long enough to bother expanding
   const isLong = errand.description?.length > 60;
-  
-  // NEW LOGIC: Check if the current user is the one who posted it
   const isPoster = user?.id === errand.user_id;
 
   return (
@@ -19,6 +19,19 @@ export default function ErrandCard({ errand, currentBuilding, user, onClaim, onC
             <span className="text-[9px] bg-blue-50 text-blue-600 px-2 py-0.5 rounded-full font-black uppercase tracking-tighter">
               {errand.buildings?.name || 'Local'}
             </span>
+          </div>
+
+          {/* --- DISPLAYING THE FULL NAME --- */}
+          <div className="flex items-center gap-2 mb-2">
+            <div className="w-6 h-6 bg-blue-100 rounded-full flex items-center justify-center text-[10px] font-bold text-blue-600">
+              {errand.full_name?.charAt(0) || 'N'}
+            </div>
+            <span className="text-[11px] font-bold text-slate-500 uppercase tracking-tight">
+              {errand.full_name || 'Neighbor'}
+            </span>
+            <span className="text-[9px] text-slate-400 font-medium">
+            {formatDistanceToNow(new Date(errand.created_at), { addSuffix: true })}
+          </span>
           </div>
           
           <p className="text-gray-500 text-xs flex items-center gap-1">
@@ -112,22 +125,22 @@ export default function ErrandCard({ errand, currentBuilding, user, onClaim, onC
           </div>
         ) : (
           isMyBuilding ? (
-                <button 
-                  onClick={() => onClaim(errand.id)} 
-                  disabled={isPoster}
-                  className={`w-full py-3 rounded-xl font-bold transition-all active:scale-95 
-                    ${isPoster 
-                      ? 'bg-gray-100 text-gray-400 cursor-not-allowed animate-pulse' 
-                      : 'bg-blue-600 text-white shadow-lg shadow-blue-100'}`}
-                >
-                  {isPoster ? (
-                    <span className="flex items-center justify-center gap-2">
-                      <span className="w-2 h-2 bg-gray-300 rounded-full animate-ping"></span>
-                      Waiting for a runner...
-                    </span>
-                  ) : "I Got It!"}
-                </button>
-              ) : (
+            <button 
+              onClick={() => onClaim(errand.id)} 
+              disabled={isPoster}
+              className={`w-full py-3 rounded-xl font-bold transition-all active:scale-95 
+                ${isPoster 
+                  ? 'bg-gray-100 text-gray-400 cursor-not-allowed animate-pulse' 
+                  : 'bg-blue-600 text-white shadow-lg shadow-blue-100'}`}
+            >
+              {isPoster ? (
+                <span className="flex items-center justify-center gap-2">
+                  <span className="w-2 h-2 bg-gray-300 rounded-full animate-ping"></span>
+                  Waiting for a runner...
+                </span>
+              ) : "I Got It!"}
+            </button>
+          ) : (
             <div className="w-full bg-gray-50 text-gray-400 py-3 rounded-xl text-[11px] text-center border border-dashed border-gray-200 font-bold flex items-center justify-center gap-2">
               <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />

@@ -37,6 +37,7 @@ export default function Auth({ onAuthSuccess, nearbyBuildings, onVerify, current
     setLoading(false);
   };
 
+
   const handleLogin = async (e) => {
     e.preventDefault();
     setLoading(true);
@@ -108,8 +109,20 @@ export default function Auth({ onAuthSuccess, nearbyBuildings, onVerify, current
               onChange={e => setPassword(e.target.value)} required 
               icon={<svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>}
             />
-            <button type="submit" disabled={loading} className="w-full bg-blue-600 text-white py-4 mt-4 rounded-xl font-bold shadow-lg shadow-blue-100">
-              {loading ? "Registering..." : "Sign Up"}
+            <button 
+              type="submit" 
+              disabled={loading} 
+              className={`w-full py-4 mt-4 rounded-xl font-bold transition-all flex items-center justify-center relative overflow-hidden ${
+                loading ? 'bg-blue-500 cursor-not-allowed' : 'bg-blue-600 text-white shadow-lg shadow-blue-100 active:scale-95'
+              }`}
+            >
+              <div className={`flex items-center gap-3 transition-all duration-300 ${loading ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2 absolute'}`}>
+                <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                <span className="text-sm tracking-tight">Creating account...</span>
+              </div>
+              <span className={`transition-all duration-300 ${loading ? 'opacity-0 -translate-y-2' : 'opacity-100 translate-y-0'}`}>
+                Sign Up
+              </span>
             </button>
             <button onClick={() => setStep('choice')} className="w-full text-xs text-gray-400 font-medium pt-2">Back</button>
           </form>
@@ -139,39 +152,53 @@ export default function Auth({ onAuthSuccess, nearbyBuildings, onVerify, current
               onChange={e => setPassword(e.target.value)} required 
               icon={<svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>}
             />
-            <button type="submit" className="w-full bg-blue-600 text-white py-4 mt-4 rounded-xl font-bold shadow-lg shadow-blue-100">
-              Login & Verify GPS
-            </button>
-            <button onClick={() => setStep('choice')} className="w-full text-xs text-gray-400 font-medium pt-2">Back</button>
+            <button 
+  type="submit" 
+  disabled={loading}
+  className={`w-full py-4 mt-4 rounded-xl font-bold transition-all duration-300 flex items-center justify-center relative shadow-lg text-white
+    ${loading 
+      ? 'bg-blue-600 cursor-not-allowed opacity-90' // ⏳ Back to OG Blue + Slight Fade while loading
+      : 'bg-blue-600 hover:bg-blue-700 active:bg-blue-900 active:scale-95' // ✨ Darken only when CLICKED
+    }`}
+>
+  {/* 1. THE SPINNER (Centered in OG Blue) */}
+  {loading && (
+    <div className="absolute inset-0 flex items-center justify-center">
+      <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+    </div>
+  )}
+
+  {/* 2. THE TEXT */}
+  <span className={`transition-all duration-300 ${loading ? 'opacity-0 scale-90' : 'opacity-100 scale-100'}`}>
+    Login & Verify GPS
+  </span>
+</button>
+            <button onClick={() => setStep('choice')} className="text-xs text-gray-400 font-medium pt-2 w-full text-center">Back</button>
           </form>
         )}
 
-                    {/* --- BUILDING SELECTION OVERLAY --- */}
-            {nearbyBuildings?.length > 0 && !currentBuilding && (
-              <div className="absolute inset-0 bg-white/95 backdrop-blur-md z-20 p-8 flex flex-col justify-center animate-fade-in rounded-3xl">
-                
-                <h2 className="text-center text-blue-600 font-black text-xs uppercase tracking-widest mb-6">
-                  Multiple Buildings Found
-                </h2>
-
-                {/* 🛡️ ADD THIS WRAPPER DIV WITH 'space-y-3' */}
-                <div className="flex flex-col space-y-3 w-full">
-                  {nearbyBuildings.map(b => (
-                    <button 
-                      key={b.id} 
-                      onClick={() => onVerify(b)} 
-                      className="w-full bg-gray-50 border border-gray-100 hover:border-blue-400 hover:bg-blue-50 text-gray-800 py-4 px-6 rounded-2xl font-bold transition-all active:scale-95 text-center shadow-sm"
-                    >
-                      {b.name}
-                    </button>
-                  ))}
-                </div>
-
-                <p className="text-center text-gray-400 text-xs mt-6 font-medium">
-                  Which one are you in?
-                </p>
-              </div>
-            )}
+        {/* --- BUILDING SELECTION OVERLAY --- */}
+        {nearbyBuildings?.length > 0 && !currentBuilding && (
+          <div className="absolute inset-0 bg-white/95 backdrop-blur-md z-20 p-8 flex flex-col justify-center animate-fade-in rounded-3xl text-center">
+            <h2 className="text-blue-600 font-black text-xs uppercase tracking-widest mb-6">
+              Multiple Buildings Found
+            </h2>
+            <div className="flex flex-col space-y-3 w-full">
+              {nearbyBuildings.map(b => (
+                <button 
+                  key={b.id} 
+                  onClick={() => onVerify(b)} 
+                  className="w-full bg-gray-50 border border-gray-100 hover:border-blue-400 hover:bg-blue-50 text-gray-800 py-4 px-6 rounded-2xl font-bold transition-all active:scale-95 shadow-sm"
+                >
+                  {b.name}
+                </button>
+              ))}
+            </div>
+            <p className="text-gray-400 text-xs mt-6 font-medium">
+              Which one are you in?
+            </p>
+          </div>
+        )}
       </div>
     </div>
   );
