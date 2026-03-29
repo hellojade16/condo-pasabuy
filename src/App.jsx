@@ -163,7 +163,7 @@ function App() {
 
           const matches = buildings.filter(b => {
             const dist = calculateDistance(myLat, myLon, Number(b.latitude), Number(b.longitude));
-            return dist <= 5000; 
+            return dist <= 500; 
           });
 
           if (matches.length === 1) {
