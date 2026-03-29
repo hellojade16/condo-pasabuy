@@ -16,7 +16,7 @@ export default function Header({ user, currentBuilding, onLogout, onPostClick, o
               />
             ) : (
               <span className="text-xs font-black text-blue-500 uppercase">
-                {user?.user_metadata?.full_name?.charAt(0) || 'N'}
+                {user?.user_metadata?.display_name?.charAt(0) || 'N'}
               </span>
             )}
          </div>
