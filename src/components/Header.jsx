@@ -3,9 +3,7 @@ import React from 'react';
 export default function Header({ user, currentBuilding, onLogout, onPostClick, onProfileClick }) {
   return (
     <header className="bg-white/80 backdrop-blur-md sticky top-0 z-50 px-6 py-4 flex justify-between items-center border-b border-slate-100">
-      
-      {/* 👤 NEW: Clickable Avatar to open Profile instead of logout icon */}
-      <button 
+            <button 
         onClick={onProfileClick} 
         className="relative group transition-transform active:scale-90"
       >
