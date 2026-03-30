@@ -73,8 +73,7 @@ export default function Auth({ onAuthSuccess, nearbyBuildings, onVerify, current
           </div>
         ) : (
           <>
-            {/* FIX: If a user is logged in but has no building selected yet */}
-            {user && !currentBuilding ? (
+            {user && !currentBuilding && (nearbyBuildings?.length > 0 || lastScannedCoords) ? (
               <div className="animate-fade-in text-center w-full space-y-6">
                 
                 {/* 1. Show Building List OR Account Info */}
@@ -90,14 +89,12 @@ export default function Auth({ onAuthSuccess, nearbyBuildings, onVerify, current
                     </div>
                   </div>
                 ) : (
-                  /* IMAGE 1 SCENARIO: No buildings found, show user card */
                   <div className="text-center py-6 bg-blue-50/50 rounded-2xl border border-blue-100 border-dashed">
                     <p className="text-[10px] text-blue-400 font-black uppercase tracking-widest mb-1">Account Verified</p>
                     <p className="text-xs font-bold text-slate-600 truncate px-4">{user.email}</p>
                   </div>
                 )}
 
-                {/* 2. THE FIX: Registration button is now always available if GPS is scanned */}
                 <button 
                   onClick={() => setShowRequestModal(true)}
                   disabled={!lastScannedCoords}

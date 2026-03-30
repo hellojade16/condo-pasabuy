@@ -9,6 +9,8 @@ export default function Profile({ user, onLogout, onClose, setUser, currentBuild
   const [showNameModal, setShowNameModal] = useState(false);
   const [cooldown, setCooldown] = useState(0);
 
+  if (!user) return null;
+
   useEffect(() => {
     const fetchProfile = async () => {
       const { data } = await supabase.from('profiles').select('full_name, avatar_url').eq('id', user.id).single();
@@ -112,7 +114,7 @@ export default function Profile({ user, onLogout, onClose, setUser, currentBuild
           </div>
         </div>
 
-        {/* RESIDENCE SECTION - ICON ONLY */}
+        
         <div className="space-y-2">
           <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Current Residence</label>
           <div className="w-full p-5 bg-blue-50/50 border border-blue-100/50 text-blue-700 rounded-[24px] font-bold flex justify-between items-center group">
@@ -128,7 +130,17 @@ export default function Profile({ user, onLogout, onClose, setUser, currentBuild
               </div>
             </div>
             <button 
-              onClick={() => { if(window.confirm("Verify location again?")) { onClose(); onVerify(null); } }}
+              onClick={async () => { 
+  if(window.confirm("Verify location again?")) { 
+    localStorage.removeItem('savedBuilding');
+    await supabase
+      .from('profiles')
+      .update({ verified_building_id: null })
+      .eq('id', user.id);
+    onClose(); 
+    onVerify(null); 
+  } 
+}}
               className="w-10 h-10 bg-white rounded-full flex items-center justify-center shadow-sm border border-blue-100 text-blue-600 hover:bg-blue-600 hover:text-white transition-all active:scale-90"
             >
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -138,7 +150,7 @@ export default function Profile({ user, onLogout, onClose, setUser, currentBuild
           </div>
         </div>
 
-        {/* ACCOUNT INFO */}
+       
         <div className="space-y-3 pt-4 border-t border-gray-100">
           <div className="p-4 px-6 bg-gray-50 rounded-[24px] flex justify-between items-center opacity-70">
             <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Email Address</span>

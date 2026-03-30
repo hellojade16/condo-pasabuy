@@ -30,9 +30,9 @@ function App() {
   const [loadingGPS, setLoadingGPS] = useState(false);
   const [showRecoveryModal, setShowRecoveryModal] = useState(false);
   const [lastScannedCoords, setLastScannedCoords] = useState(null);
+  const [isInitialLoading, setIsInitialLoading] = useState(true);
 
 const [currentBuilding, setCurrentBuilding] = useState(() => {
-  // We use a function here so it runs IMMEDIATELY on the very first frame
   const saved = localStorage.getItem('savedBuilding');
   if (!saved || saved === "undefined" || saved === "null") return null;
   try {
@@ -70,21 +70,25 @@ const [currentBuilding, setCurrentBuilding] = useState(() => {
   useEffect(() => {
     setLoadingGPS(false);
     supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session) setUser(session.user);
-      const saved = localStorage.getItem('savedBuilding');
-      if (saved && saved !== "undefined" && saved !== "null") {
-        setCurrentBuilding(JSON.parse(saved));
+      if (session) {
+        setUser(session.user);
       }
+      
+      setIsInitialLoading(false);
     });
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       if (event === "PASSWORD_RECOVERY") {
         setShowProfile(false);
         setShowRecoveryModal(true);
         return; 
       }
-      if (session) setUser(session.user);
-      else setUser(null);
+      if (session) {
+        setUser(session.user);
+      } else {
+        setUser(null);
+        setCurrentBuilding(null);
+      }
     });
 
     return () => subscription.unsubscribe();
@@ -248,6 +252,13 @@ const [currentBuilding, setCurrentBuilding] = useState(() => {
     }
   };
 
+  if (isInitialLoading) {
+    return (
+      <div className="h-screen bg-white flex items-center justify-center">
+         <div className="w-10 h-10 border-2 border-blue-600/20 border-t-blue-600 rounded-full animate-spin" />
+      </div>
+    );
+  }
   if (!user || !currentBuilding) {
     return (
       <Auth 
@@ -276,6 +287,8 @@ const [currentBuilding, setCurrentBuilding] = useState(() => {
       />
     );
   } 
+  
+
 
   return (
     <div className="h-screen bg-slate-50 max-w-md mx-auto shadow-2xl flex flex-col font-sans relative overflow-hidden">

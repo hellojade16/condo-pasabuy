@@ -87,11 +87,16 @@ export default function PostErrandModal({
           </div>
 
           <button 
-            type="submit" 
-            className="w-full bg-blue-600 text-white py-4 rounded-2xl font-black shadow-xl shadow-blue-100 active:scale-95 transition-all mt-4"
-          >
-            Post to {currentBuilding?.name}
-          </button>
+  type="submit" 
+  className="group relative w-full mt-6 overflow-hidden rounded-[20px] bg-blue-600 py-4 px-6 font-black text-white shadow-[0_20px_40px_-15px_rgba(37,99,235,0.4)] transition-all hover:bg-blue-700 hover:shadow-[0_25px_50px_-12px_rgba(37,99,235,0.5)] active:scale-[0.96]"
+>
+  {/* Subtle Inner Light Effect */}
+  <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/30 to-transparent" />
+  
+  <div className="relative flex items-center justify-center gap-3">
+    <span className="text-[11px] uppercase tracking-[0.2em]">Post Errand</span>
+  </div>
+</button>
         </form>
       </div>
     </div>
