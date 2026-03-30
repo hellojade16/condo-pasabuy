@@ -38,6 +38,17 @@ function App() {
     } return null;
   });
 
+  // NEW: Centralized Logout Function to fix the dangling code error
+  const handleLogout = async () => {
+    setShowProfile(false);
+    await supabase.auth.signOut();
+    setUser(null);
+    setCurrentBuilding(null);
+    setNearbyBuildings([]);
+    localStorage.removeItem('savedBuilding');
+    localStorage.clear();
+  };
+
   const resetForm = () => {
     setFormData({ title: '', desc: '', loc: '', unit: '', fee: 50 });
   };
@@ -163,22 +174,20 @@ function App() {
 
           const matches = buildings.filter(b => {
             const dist = calculateDistance(myLat, myLon, Number(b.latitude), Number(b.longitude));
-            return dist <= 500; 
+            return dist <= 4000; 
           });
 
           if (matches.length === 1) {
-            // Direct update for single match
             const found = matches[0];
             setCurrentBuilding(found);
             localStorage.setItem('savedBuilding', JSON.stringify(found));
           } else {
-            // Multiple or Zero matches
             setNearbyBuildings(matches);
           }
         } catch (err) {
           console.error("Database error:", err.message);
         } finally {
-          setLoadingGPS(false); // ✅ Crucial: Spinner always stops here
+          setLoadingGPS(false); 
         }
       },
       (geoError) => {
@@ -190,7 +199,7 @@ function App() {
       },
       { 
         enableHighAccuracy: false, 
-        timeout: 8000,              
+        timeout: 8000,               
         maximumAge: 60000           
       }
     );
@@ -270,14 +279,7 @@ function App() {
         user={user} 
         currentBuilding={currentBuilding} 
         onProfileClick={() => setShowProfile(true)}
-        onLogout={() => { 
-          supabase.auth.signOut(); 
-          setUser(null); 
-          setCurrentBuilding(null); 
-          setNearbyBuildings([]);
-          localStorage.removeItem('savedBuilding');
-          handleGPSVerification();
-        }} 
+        onLogout={handleLogout} 
         onPostClick={() => setShowModal(true)} 
       />
 
@@ -313,21 +315,32 @@ function App() {
         )}
       </main>
 
-      <PostErrandModal showModal={showModal} setShowModal={(val) => { setShowModal(val); if (val === false) resetForm(); }} formData={formData} setFormData={setFormData} handleFeeChange={handleFeeChange} handlePostErrand={handlePostErrand} currentBuilding={currentBuilding} />
-
-      <ResetPasswordModal show={showRecoveryModal} onClose={() => setShowRecoveryModal(false)} onAuthReset={() => { setUser(null); setCurrentBuilding(null); localStorage.removeItem('savedBuilding'); }} />
-
       {showProfile && (
-        <Profile user={user} setUser={setUser} currentBuilding={currentBuilding} onVerify={handleGPSVerification} onClose={() => setShowProfile(false)} 
-          onLogout={() => {
-            supabase.auth.signOut();
-            setUser(null);
-            setCurrentBuilding(null);
-            localStorage.removeItem('savedBuilding');
-            setShowProfile(false);
-          }}
+        <Profile 
+          user={user} 
+          setUser={setUser} 
+          currentBuilding={currentBuilding} 
+          onVerify={handleGPSVerification} 
+          onClose={() => setShowProfile(false)} 
+          onLogout={handleLogout}
         />
       )}
+
+      <PostErrandModal 
+        showModal={showModal} 
+        setShowModal={(val) => { setShowModal(val); if (val === false) resetForm(); }} 
+        formData={formData} 
+        setFormData={setFormData} 
+        handleFeeChange={handleFeeChange} 
+        handlePostErrand={handlePostErrand} 
+        currentBuilding={currentBuilding} 
+      />
+
+      <ResetPasswordModal 
+        show={showRecoveryModal} 
+        onClose={() => setShowRecoveryModal(false)} 
+        onAuthReset={() => { setUser(null); setCurrentBuilding(null); localStorage.clear(); }} 
+      />
     </div>
   );
 }
