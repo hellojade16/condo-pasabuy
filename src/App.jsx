@@ -38,16 +38,16 @@ function App() {
     } return null;
   });
 
-  // NEW: Centralized Logout Function to fix the dangling code error
   const handleLogout = async () => {
-    setShowProfile(false);
-    await supabase.auth.signOut();
-    setUser(null);
-    setCurrentBuilding(null);
-    setNearbyBuildings([]);
-    localStorage.removeItem('savedBuilding');
-    localStorage.clear();
-  };
+  setShowProfile(false);
+  setUser(null);
+  setCurrentBuilding(null);
+  setErrands([]); 
+  setNearbyBuildings([]);
+  localStorage.removeItem('savedBuilding');
+  localStorage.clear();
+  await supabase.auth.signOut();
+};
 
   const resetForm = () => {
     setFormData({ title: '', desc: '', loc: '', unit: '', fee: 50 });
