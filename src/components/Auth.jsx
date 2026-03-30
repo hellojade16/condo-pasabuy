@@ -108,7 +108,7 @@ export default function Auth({ onAuthSuccess, nearbyBuildings, onVerify, current
                         <p className="text-xs font-bold text-slate-600 truncate px-4">{user.email}</p>
                       </div>
                     )}
-                    {/* REMOVED: "My condo isn't listed yet" fallback button */}
+                    
                   </div>
                 )}
 
@@ -118,10 +118,11 @@ export default function Auth({ onAuthSuccess, nearbyBuildings, onVerify, current
                     <ModernInput type="text" placeholder="Full Name" value={fullName} onChange={e => setFullName(e.target.value)} required icon={<svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>} />
                     <ModernInput type="email" placeholder="Email Address" value={email} onChange={e => setEmail(e.target.value)} required icon={<svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 12a4 4 0 10-8 0 4 4 0 008 0zm0 0v1.5a2.5 2.5 0 005 0V12a9 9 0 10-9 9m4.5-1.206a8.959 8.959 0 01-4.5 1.206" /></svg>} />
                     <ModernInput type="password" placeholder="Create Password" value={password} onChange={e => setPassword(e.target.value)} required icon={<svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>} />
-                    <button type="submit" disabled={loading} className={`w-full py-4 mt-4 rounded-xl font-bold transition-all flex items-center justify-center ${loading ? 'bg-blue-500 cursor-not-allowed' : 'bg-blue-600 text-white shadow-lg shadow-blue-100 active:scale-95'}`}>{loading ? 'Creating account...' : 'Sign Up'}</button>
-                    <button onClick={() => setStep('choice')} className="w-full text-xs text-gray-400 font-medium pt-2">Back</button>
-                  </form>
-                )}
+                    <button type="submit" disabled={loading} 
+                    className={`w-full py-4 mt-4 rounded-xl font-bold transition-all flex items-center justify-center shadow-lg text-white ${
+                      loading ? 'bg-blue-500 cursor-not-allowed' : 'bg-blue-600 shadow-blue-100 active:scale-95'}`}>{loading ? (
+                      <div className="w-6 h-6 border-2 border-white/30 border-t-white rounded-full animate-spin" />) : ('Sign Up')}</button>
+                      <button onClick={() => setStep('choice')} className="w-full text-xs text-gray-400 font-medium pt-2">Back</button></form>)}
 
                 {step === 'login' && (
                   <form onSubmit={handleLogin} className="w-full space-y-4 animate-slide-up">
