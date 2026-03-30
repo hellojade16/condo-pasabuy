@@ -128,7 +128,10 @@ export default function Auth({ onAuthSuccess, nearbyBuildings, onVerify, current
                     <p className="text-center text-xs font-black mb-6 uppercase tracking-widest text-blue-600">Welcome Back</p>
                     <ModernInput type="email" placeholder="Email" value={email} onChange={e => setEmail(e.target.value)} required icon={<svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 12a4 4 0 10-8 0 4 4 0 008 0zm0 0v1.5a2.5 2.5 0 005 0V12a9 9 0 10-9 9m4.5-1.206a8.959 8.959 0 01-4.5 1.206" /></svg>} />
                     <ModernInput type="password" placeholder="Password" value={password} onChange={e => setPassword(e.target.value)} required icon={<svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>} />
-                    <button type="submit" disabled={loading} className={`w-full py-4 mt-4 rounded-xl font-bold transition-all flex items-center justify-center shadow-lg text-white ${loading ? 'bg-blue-600 cursor-not-allowed opacity-90' : 'bg-blue-600 hover:bg-blue-700 active:bg-blue-900 active:scale-95'}`}>{loading ? 'Logging in...' : 'Login & Verify GPS'}</button>
+                    <button type="submit" disabled={loading} className={`w-full py-4 mt-4 rounded-xl font-bold transition-all flex items-center justify-center shadow-lg text-white ${ loading 
+      ? 'bg-blue-600 cursor-not-allowed opacity-90' 
+      : 'bg-blue-600 hover:bg-blue-700 active:bg-blue-900 active:scale-95'}`}>{loading ? (<div className="w-6 h-6 border-2 border-white/30 border-t-white rounded-full animate-spin" />) : (
+        'Login & Verify GPS')}</button>
                     <button onClick={() => setStep('choice')} className="text-xs text-gray-400 font-medium pt-2 w-full text-center">Back</button>
                   </form>
                 )}
