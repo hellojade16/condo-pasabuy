@@ -46,7 +46,7 @@ export default function Auth({ onAuthSuccess, nearbyBuildings, onVerify, current
     setLoading(false);
   };
 
-  return (
+ return (
     <div className="flex-1 flex flex-col items-center justify-center p-0 bg-gray-50 min-h-screen font-sans">
       <div className="w-full max-w-sm flex-1 sm:flex-initial bg-white p-8 rounded-3xl shadow-xl shadow-gray-100 border border-gray-100 relative flex flex-col justify-center">
         <div className="absolute top-0 left-0 right-0 h-1 bg-blue-600 rounded-t-3xl"></div>
@@ -73,42 +73,50 @@ export default function Auth({ onAuthSuccess, nearbyBuildings, onVerify, current
           </div>
         ) : (
           <>
-            {nearbyBuildings?.length > 0 && !currentBuilding ? (
-              <div className="animate-fade-in text-center w-full">
-                <h2 className="text-blue-600 font-black text-xs uppercase tracking-widest mb-6">Nearby Condos Found</h2>
-                <div className="flex flex-col space-y-3 w-full max-h-[300px] overflow-y-auto pr-1">
-                  {nearbyBuildings.map(b => (
-                    <button key={b.id} onClick={() => onVerify(b)} className="w-full bg-gray-50 border border-gray-100 hover:border-blue-400 text-gray-800 py-4 px-6 rounded-2xl font-bold transition-all shadow-sm active:scale-95">
-                      {b.name}
-                    </button>
-                  ))}
-                  {user && (
-    <button 
-      onClick={() => setShowRequestModal(true)}
-      disabled={!lastScannedCoords}
-      className={`w-full p-4 border-2 border-dashed rounded-2xl text-[10px] font-black uppercase transition-colors ${!lastScannedCoords ? 'border-gray-50 text-gray-200' : 'border-gray-100 text-gray-300 hover:text-blue-500'}`}
-    >
-      {!lastScannedCoords ? 'Syncing GPS...' : '+ My building is not here'}
-    </button>
-  )}
-                </div>
+            {/* FIX: If a user is logged in but has no building selected yet */}
+            {user && !currentBuilding ? (
+              <div className="animate-fade-in text-center w-full space-y-6">
+                
+                {/* 1. Show Building List OR Account Info */}
+                {nearbyBuildings?.length > 0 ? (
+                  <div className="w-full">
+                    <h2 className="text-blue-600 font-black text-xs uppercase tracking-widest mb-6">Nearby Condos Found</h2>
+                    <div className="flex flex-col space-y-3 w-full max-h-[300px] overflow-y-auto pr-1">
+                      {nearbyBuildings.map(b => (
+                        <button key={b.id} onClick={() => onVerify(b)} className="w-full bg-gray-50 border border-gray-100 hover:border-blue-400 text-gray-800 py-4 px-6 rounded-2xl font-bold transition-all shadow-sm active:scale-95">
+                          {b.name}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                ) : (
+                  /* IMAGE 1 SCENARIO: No buildings found, show user card */
+                  <div className="text-center py-6 bg-blue-50/50 rounded-2xl border border-blue-100 border-dashed">
+                    <p className="text-[10px] text-blue-400 font-black uppercase tracking-widest mb-1">Account Verified</p>
+                    <p className="text-xs font-bold text-slate-600 truncate px-4">{user.email}</p>
+                  </div>
+                )}
+
+                {/* 2. THE FIX: Registration button is now always available if GPS is scanned */}
+                <button 
+                  onClick={() => setShowRequestModal(true)}
+                  disabled={!lastScannedCoords}
+                  className={`w-full p-4 border-2 border-dashed rounded-2xl text-[10px] font-black uppercase transition-colors ${!lastScannedCoords ? 'border-gray-50 text-gray-200' : 'border-gray-100 text-gray-300 hover:text-blue-500 hover:border-blue-200'}`}
+                >
+                  {!lastScannedCoords ? 'Syncing GPS...' : '+ My building is not here'}
+                </button>
               </div>
             ) : (
+              /* Auth Forms (Login/Signup/Choice) */
               <>
                 {step === 'choice' && (
                   <div className="w-full space-y-4 animate-fade-in text-center">
-                    {!user ? (
+                    {!user && (
                       <>
                         <button onClick={() => setStep('login')} className="w-full bg-blue-600 text-white py-4 rounded-xl font-bold active:scale-95 transition-all shadow-md shadow-blue-100">Login</button>
                         <button onClick={() => setStep('signup')} className="w-full bg-gray-100 text-gray-700 py-4 rounded-xl font-bold active:scale-95 transition-all hover:bg-gray-200">Create Account</button>
                       </>
-                    ) : (
-                      <div className="text-center py-4 bg-blue-50/50 rounded-2xl border border-blue-100 border-dashed">
-                        <p className="text-[10px] text-blue-400 font-black uppercase tracking-widest mb-1">Account Verified</p>
-                        <p className="text-xs font-bold text-slate-600 truncate px-4">{user.email}</p>
-                      </div>
                     )}
-                    
                   </div>
                 )}
 
@@ -130,9 +138,9 @@ export default function Auth({ onAuthSuccess, nearbyBuildings, onVerify, current
                     <ModernInput type="email" placeholder="Email" value={email} onChange={e => setEmail(e.target.value)} required icon={<svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 12a4 4 0 10-8 0 4 4 0 008 0zm0 0v1.5a2.5 2.5 0 005 0V12a9 9 0 10-9 9m4.5-1.206a8.959 8.959 0 01-4.5 1.206" /></svg>} />
                     <ModernInput type="password" placeholder="Password" value={password} onChange={e => setPassword(e.target.value)} required icon={<svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>} />
                     <button type="submit" disabled={loading} className={`w-full py-4 mt-4 rounded-xl font-bold transition-all flex items-center justify-center shadow-lg text-white ${ loading 
-      ? 'bg-blue-600 cursor-not-allowed opacity-90' 
-      : 'bg-blue-600 hover:bg-blue-700 active:bg-blue-900 active:scale-95'}`}>{loading ? (<div className="w-6 h-6 border-2 border-white/30 border-t-white rounded-full animate-spin" />) : (
-        'Login & Verify GPS')}</button>
+                      ? 'bg-blue-600 cursor-not-allowed opacity-90' 
+                      : 'bg-blue-600 hover:bg-blue-700 active:bg-blue-900 active:scale-95'}`}>{loading ? (<div className="w-6 h-6 border-2 border-white/30 border-t-white rounded-full animate-spin" />) : (
+                        'Login & Verify GPS')}</button>
                     <button onClick={() => setStep('choice')} className="text-xs text-gray-400 font-medium pt-2 w-full text-center">Back</button>
                   </form>
                 )}

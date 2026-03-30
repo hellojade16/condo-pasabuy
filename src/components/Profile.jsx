@@ -5,7 +5,7 @@ import UpdateNameModal from './Modals/UpdateName';
 export default function Profile({ user, onLogout, onClose, setUser, currentBuilding, onVerify }) {
   const [uploading, setUploading] = useState(false);
   const [avatarUrl, setAvatarUrl] = useState(user?.user_metadata?.avatar_url || '');
-  const [fullName, setFullName] = useState('');
+  const [fullName, setFullName] = useState(user?.user_metadata?.full_name || '');
   const [showNameModal, setShowNameModal] = useState(false);
   const [cooldown, setCooldown] = useState(0);
 

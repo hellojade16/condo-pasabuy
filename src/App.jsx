@@ -31,12 +31,16 @@ function App() {
   const [showRecoveryModal, setShowRecoveryModal] = useState(false);
   const [lastScannedCoords, setLastScannedCoords] = useState(null);
 
-  const [currentBuilding, setCurrentBuilding] = useState(() => {
-    const saved = localStorage.getItem('savedBuilding');
-    if (saved && saved !== "undefined" && saved !== "null") {
-      try { return JSON.parse(saved); } catch (e) { return null; }
-    } return null;
-  });
+const [currentBuilding, setCurrentBuilding] = useState(() => {
+  // We use a function here so it runs IMMEDIATELY on the very first frame
+  const saved = localStorage.getItem('savedBuilding');
+  if (!saved || saved === "undefined" || saved === "null") return null;
+  try {
+    return JSON.parse(saved);
+  } catch (e) {
+    return null;
+  }
+});
 
   const handleLogout = async () => {
   setShowProfile(false);
@@ -174,7 +178,7 @@ function App() {
 
           const matches = buildings.filter(b => {
             const dist = calculateDistance(myLat, myLon, Number(b.latitude), Number(b.longitude));
-            return dist <= 500; 
+            return dist <= 100; 
           });
 
           if (matches.length === 1) {
