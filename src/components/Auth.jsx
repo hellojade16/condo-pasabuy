@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabaseClient';
 import LogoImage from '../assets/logo.png'; 
 import RequestBuildingModal from './Modals/RequestBuilding';
@@ -23,6 +23,15 @@ export default function Auth({ onAuthSuccess, nearbyBuildings, onVerify, current
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [showRequestModal, setShowRequestModal] = useState(false);
+
+  // Auth.jsx
+useEffect(() => {
+  // If we have a user but no building, and we haven't scanned yet...
+  // trigger the GPS scan automatically!
+  if (user && !currentBuilding && !lastScannedCoords && !loadingGPS) {
+    onVerify();
+  }
+}, [user, currentBuilding, lastScannedCoords, loadingGPS, onVerify]);
 
   const handleSignUp = async (e) => {
     e.preventDefault();
@@ -50,6 +59,7 @@ export default function Auth({ onAuthSuccess, nearbyBuildings, onVerify, current
     }
     setLoading(false);
   };
+  
 
 return (
     <div className="flex-1 flex flex-col items-center justify-center p-0 bg-gray-50 min-h-screen font-sans">
@@ -164,5 +174,4 @@ return (
         <RequestBuildingModal show={showRequestModal} onClose={() => setShowRequestModal(false)} onBuildingAdded={(newBuilding) => onVerify(newBuilding)} lastScannedCoords={lastScannedCoords} />    
       </div>
     </div>
-  );
-}
+  );}

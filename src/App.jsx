@@ -7,6 +7,7 @@ import Header from './components/Header';
 import Navigation from './components/Navigation';
 import Profile from './components/Profile';
 import ResetPasswordModal from './components/Modals/ResetPassword';
+import LocationPrompt from './components/Modals/LocationPrompt';
 
 const calculateDistance = (lat1, lon1, lat2, lon2) => {
   const R = 6371e3;
@@ -27,31 +28,32 @@ function App() {
   const [formData, setFormData] = useState({ title: '', desc: '', loc: '', unit: '', fee: 50 });
   const [viewMode, setViewMode] = useState('building');
   const [showProfile, setShowProfile] = useState(false);
-  const [loadingGPS, setLoadingGPS] = useState(false);
+  const [loadingGPS, setLoadingGPS] = useState(false); // Initialized to false
   const [showRecoveryModal, setShowRecoveryModal] = useState(false);
   const [lastScannedCoords, setLastScannedCoords] = useState(null);
   const [isInitialLoading, setIsInitialLoading] = useState(true);
+  const [locationPrompt, setLocationPrompt] = useState({ show: false, building: null });
 
-const [currentBuilding, setCurrentBuilding] = useState(() => {
-  const saved = localStorage.getItem('savedBuilding');
-  if (!saved || saved === "undefined" || saved === "null") return null;
-  try {
-    return JSON.parse(saved);
-  } catch (e) {
-    return null;
-  }
-});
+  const [currentBuilding, setCurrentBuilding] = useState(() => {
+    const saved = localStorage.getItem('savedBuilding');
+    if (!saved || saved === "undefined" || saved === "null") return null;
+    try {
+      return JSON.parse(saved);
+    } catch (e) {
+      return null;
+    }
+  });
 
   const handleLogout = async () => {
-  setShowProfile(false);
-  setUser(null);
-  setCurrentBuilding(null);
-  setErrands([]); 
-  setNearbyBuildings([]);
-  localStorage.removeItem('savedBuilding');
-  localStorage.clear();
-  await supabase.auth.signOut();
-};
+    setShowProfile(false);
+    setUser(null);
+    setCurrentBuilding(null);
+    setErrands([]); 
+    setNearbyBuildings([]);
+    localStorage.removeItem('savedBuilding');
+    localStorage.clear();
+    await supabase.auth.signOut();
+  };
 
   const resetForm = () => {
     setFormData({ title: '', desc: '', loc: '', unit: '', fee: 50 });
@@ -67,18 +69,77 @@ const [currentBuilding, setCurrentBuilding] = useState(() => {
     setFormData({ ...formData, fee: numValue });
   };
 
-  useEffect(() => {
-    // 1. Keep GPS spinner off initially
-    setLoadingGPS(false);
 
+useEffect(() => {
+    const runStartupLocationCheck = async () => {
+      // 1. Only run if we have a logged-in user and a saved building
+      if (!user || !currentBuilding) return;
+
+      console.log("System: Initiating silent background location handshake...");
+
+      navigator.geolocation.getCurrentPosition(
+        async (position) => {
+          const { latitude: myLat, longitude: myLon } = position.coords;
+          setLastScannedCoords({ lat: myLat, lon: myLon });
+
+          // 2. Calculate distance to the current building
+          const distToSaved = calculateDistance(
+            myLat,
+            myLon,
+            Number(currentBuilding.latitude),
+            Number(currentBuilding.longitude)
+          );
+
+          console.log(`System: Distance to ${currentBuilding.name} is ${distToSaved.toFixed(0)}m`);
+
+          // 3. If user is > 250m away, find the nearest condo
+          if (distToSaved > 250) {
+            const { data: buildings, error } = await supabase.from('buildings').select('*');
+            
+            if (error || !buildings) {
+              console.error("Location Guard: Could not fetch buildings list.");
+              return;
+            }
+
+            const nearest = buildings
+              .map(b => ({
+                ...b,
+                dist: calculateDistance(myLat, myLon, Number(b.latitude), Number(b.longitude))
+              }))
+              .sort((a, b) => a.dist - b.dist)[0];
+
+            // 4. THE SMART SWITCH (Custom Modal Trigger)
+            if (nearest && nearest.dist <= 250) {
+              // Instead of window.confirm, we update the state to show your new Modal
+              setLocationPrompt({ show: true, building: nearest });
+              console.log(`System: Detected user at ${nearest.name}. Prompting switch...`);
+            } else {
+              console.warn("Location Guard: User is currently 'Out of Bounds'.");
+            }
+          }
+        },
+        (geoError) => {
+          console.warn("Location Guard: Silent scan skipped.", geoError.message);
+        },
+        { 
+          enableHighAccuracy: true, 
+          timeout: 10000, 
+          maximumAge: 0 
+        }
+      );
+    };
+
+    const timer = setTimeout(runStartupLocationCheck, 1500); 
+    return () => clearTimeout(timer);
+
+  }, [user]);
+
+  useEffect(() => {
     const initialize = async () => {
-      // 2. Wait for Supabase to tell us who the user is
       const { data: { session } } = await supabase.auth.getSession();
       
       if (session) {
         setUser(session.user);
-        
-        // 3. IMMEDIATELY check for the building BEFORE opening the gates
         const saved = localStorage.getItem('savedBuilding');
         if (saved && saved !== "undefined" && saved !== "null") {
           try {
@@ -89,15 +150,11 @@ const [currentBuilding, setCurrentBuilding] = useState(() => {
           }
         }
       }
-
-      // 4. THE CRITICAL STEP: Only turn off the splash screen 
-      // AFTER we have checked both the user and the building.
       setIsInitialLoading(false);
     };
 
     initialize();
 
-    // Listener for login/logout events
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (event === "PASSWORD_RECOVERY") {
         setShowProfile(false);
@@ -114,8 +171,9 @@ const [currentBuilding, setCurrentBuilding] = useState(() => {
 
     return () => subscription.unsubscribe();
   }, []);
+
   useEffect(() => {
-    if (currentBuilding) fetchErrands();
+    if (currentBuilding || viewMode === 'global') fetchErrands();
   }, [viewMode, currentBuilding]);
 
   useEffect(() => {
@@ -128,7 +186,7 @@ const [currentBuilding, setCurrentBuilding] = useState(() => {
       .subscribe();
 
     return () => supabase.removeChannel(channel);
-  }, [currentBuilding]); 
+  }, [currentBuilding, viewMode]); 
 
   const handleClaim = async (errandId) => {
     const { error } = await supabase
@@ -145,9 +203,17 @@ const [currentBuilding, setCurrentBuilding] = useState(() => {
   };
 
   const handleDelete = async (errandId) => {
-    const { error } = await supabase.from('errands').delete().eq('id', errandId);
-    if (error) alert(error.message);
-    else fetchErrands();
+    setErrands(prev => prev.filter(errand => errand.id !== errandId));
+
+    const { error } = await supabase
+      .from('errands')
+      .delete()
+      .eq('id', errandId);
+
+    if (error) {
+      alert("Error deleting: " + error.message);
+      fetchErrands();
+    }
   };
 
   const handleComplete = async (errandId) => {
@@ -156,84 +222,63 @@ const [currentBuilding, setCurrentBuilding] = useState(() => {
     else fetchErrands();
   };
 
-  const handleGPSVerification = async (selectedBuilding = null) => {
-    setLoadingGPS(true);
+ const handleGPSVerification = async (selectedBuilding = null) => {
+  setLoadingGPS(true);
+  // Reset previous scan data so the UI knows we are starting fresh
+  setLastScannedCoords(null);
+  setNearbyBuildings([]);
 
-    if (selectedBuilding) {
+  // Case A: User manually selected a building from a list
+  if (selectedBuilding) {
+    try {
+      setCurrentBuilding(selectedBuilding);
+      localStorage.setItem('savedBuilding', JSON.stringify(selectedBuilding));
+      if (user?.id) {
+        await supabase.from('profiles').update({ verified_building_id: selectedBuilding.id }).eq('id', user.id);
+      }
+    } finally {
+      setLoadingGPS(false);
+    }
+    return;
+  }
+
+  // Case B: Auto-scan (The "Silent" or "Auth" scan)
+  navigator.geolocation.getCurrentPosition(
+    async (position) => {
+      const { latitude: myLat, longitude: myLon } = position.coords;
+      
+      // Update coords immediately so other functions (like Post) see them
+      setLastScannedCoords({ lat: myLat, lon: myLon });
+
       try {
-        setCurrentBuilding(selectedBuilding);
-        setNearbyBuildings([]);
-        localStorage.setItem('savedBuilding', JSON.stringify(selectedBuilding));
+        const { data: buildings } = await supabase.from('buildings').select('*');
+        const matches = buildings.filter(b => {
+          const dist = calculateDistance(myLat, myLon, Number(b.latitude), Number(b.longitude));
+          return dist <= 250; 
+        });
 
-        if (user?.id) {
-          const { error: profileError } = await supabase.from('profiles')
-              .update({ verified_building_id: selectedBuilding.id })
-              .eq('id', user.id);
-              
-          if (profileError) console.warn("Profile not ready for update yet.");
-
-          await supabase.auth.updateUser({
-            data: { 
-              selected_building_id: selectedBuilding.id, 
-              building_name: selectedBuilding.name 
-            }
-          });
+        if (matches.length === 1) {
+          setCurrentBuilding(matches[0]);
+          localStorage.setItem('savedBuilding', JSON.stringify(matches[0]));
+        } else {
+          setNearbyBuildings(matches);
         }
       } catch (err) {
-        console.error("Selection error:", err.message);
+        console.error("DB Error:", err);
       } finally {
-        setLoadingGPS(false); 
+        setLoadingGPS(false);
       }
-      return;
-    }
-
-    setCurrentBuilding(null); 
-    setNearbyBuildings([]);
-
-    navigator.geolocation.getCurrentPosition(
-      async (position) => {
-        try {
-          const myLat = position.coords.latitude;
-          const myLon = position.coords.longitude;
-          setLastScannedCoords({ lat: myLat, lon: myLon });
-
-          const { data: buildings, error } = await supabase.from('buildings').select('*');
-          if (error) throw error;
-
-          const matches = buildings.filter(b => {
-            const dist = calculateDistance(myLat, myLon, Number(b.latitude), Number(b.longitude));
-            return dist <= 1000; 
-          });
-
-          if (matches.length === 1) {
-            const found = matches[0];
-            setCurrentBuilding(found);
-            localStorage.setItem('savedBuilding', JSON.stringify(found));
-          } else {
-            setNearbyBuildings(matches);
-          }
-        } catch (err) {
-          console.error("Database error:", err.message);
-        } finally {
-          setLoadingGPS(false); 
-        }
-      },
-      (geoError) => {
-    console.warn("GPS Error Code:", geoError.code);
-    setLoadingGPS(false); 
-    if (geoError.code === 3) {
-      alert("GPS took too long. Using last known location or manual selection.");
-      // NEW: Still fetch buildings but use empty coords or a wider search
-      setLastScannedCoords({ lat: 0, lon: 0 }); 
-    }
-  },
-  { 
-    enableHighAccuracy: false, 
-    timeout: 15000,           
-    maximumAge: 30000          
-  }
-);
-  };
+    },
+    (error) => {
+      console.warn("GPS Failed:", error.message);
+      setLoadingGPS(false);
+      // IMPORTANT: Only alert if it's a hard denial. 
+      // If it's a timeout, just let the user click "Try Again"
+      if (error.code === 1) alert("Please enable location permissions in your browser.");
+    },
+    { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+  );
+};
 
   const fetchErrands = async () => {
     let query = supabase
@@ -244,7 +289,9 @@ const [currentBuilding, setCurrentBuilding] = useState(() => {
         profiles:user_id (avatar_url)
       `);
 
-    if (viewMode === 'building') query = query.eq('building_id', currentBuilding.id);
+    if (viewMode === 'building' && currentBuilding) {
+      query = query.eq('building_id', currentBuilding.id);
+    }
 
     const { data, error } = await query
       .neq('status', 'completed')
@@ -255,26 +302,51 @@ const [currentBuilding, setCurrentBuilding] = useState(() => {
   };
 
   const handlePostErrand = async (e) => {
-    e.preventDefault();
-    if (formData.fee < 50) {
-      alert("Minimum runner fee is ₱50.00");
-      return;
-    }
-    const { error } = await supabase.from('errands').insert([{
-      title: formData.title, location_detail: formData.loc, unit_number: formData.unit,
-      description: formData.desc, fee_amount: formData.fee, status: 'open',
-      building_id: currentBuilding.id, user_id: user.id, 
-      full_name: user.user_metadata?.full_name || user.user_metadata?.display_name || 'Neighbor'
-    }]);
+  e.preventDefault();
 
-    if (!error) { 
-      setShowModal(false); 
-      resetForm(); 
-      fetchErrands(); 
-    }
-  };
+  if (!currentBuilding) return alert("Please select a building first.");
 
- // 1. Splash Screen Guard - Shows ONLY the spinner while the session handshakes
+  // Show a small "checking..." state if you want, or just run silently
+  navigator.geolocation.getCurrentPosition(
+    async (position) => {
+      const myLat = position.coords.latitude;
+      const myLon = position.coords.longitude;
+      
+      // Update the "source of truth" coords
+      setLastScannedCoords({ lat: myLat, lon: myLon });
+
+      const dist = calculateDistance(myLat, myLon, Number(currentBuilding.latitude), Number(currentBuilding.longitude));
+
+      if (dist > 200) {
+        const redo = window.confirm(`You are ${dist.toFixed(0)}m away. Re-verify your location?`);
+        if (redo) handleGPSVerification();
+        return;
+      }
+
+      // If OK, proceed to insert
+      const { error } = await supabase.from('errands').insert([{
+        title: formData.title,
+        location_detail: formData.loc,
+        unit_number: formData.unit,
+        description: formData.desc,
+        fee_amount: formData.fee,
+        status: 'open',
+        building_id: currentBuilding.id,
+        user_id: user.id,
+        full_name: user.user_metadata?.full_name || 'Neighbor'
+      }]);
+
+      if (!error) {
+        setShowModal(false);
+        resetForm();
+        fetchErrands();
+      }
+    },
+    () => alert("Location is required to post."),
+    { enableHighAccuracy: true, timeout: 10000 }
+  );
+};
+
   if (isInitialLoading) {
     return (
       <div className="h-screen bg-white flex items-center justify-center">
@@ -283,25 +355,21 @@ const [currentBuilding, setCurrentBuilding] = useState(() => {
     );
   }
 
- // 2. Auth Guard - Consolidated for direct Feed access
   if (!user || !currentBuilding) {
     return (
       <Auth 
         user={user}
         onAuthSuccess={async (u) => { 
-          // We DON'T set InitialLoading(true) here to avoid the Locating splash
           setUser(u); 
-          
+          setLoadingGPS(true);
           try {
-            // 1. Try Local Storage first
             const saved = localStorage.getItem('savedBuilding');
             if (saved && saved !== "undefined" && saved !== "null") {
-              const parsed = JSON.parse(saved);
-              setCurrentBuilding(parsed);
-              return; // React will now transition directly to the Feed
+              setCurrentBuilding(JSON.parse(saved));
+              setLoadingGPS(false);
+              return; 
             }
 
-            // 2. Try Database Profile (Silent background fetch)
             const { data: profile } = await supabase
               .from('profiles')
               .select('verified_building_id, buildings(id, name)')
@@ -312,14 +380,13 @@ const [currentBuilding, setCurrentBuilding] = useState(() => {
               const b = profile.buildings;
               setCurrentBuilding(b);
               localStorage.setItem('savedBuilding', JSON.stringify(b));
+              setLoadingGPS(false);
             } else {
-              // Only if they are a brand new user with no building records
-              console.log("New user - Auth component will now show building selection");
+              handleGPSVerification(); 
             }
           } catch (err) {
-            console.error("Auth success flow error:", err);
+            handleGPSVerification(); 
           } finally {
-            // Ensure any global loading states are cleared
             setIsInitialLoading(false);
           }
         }} 
@@ -399,6 +466,15 @@ const [currentBuilding, setCurrentBuilding] = useState(() => {
         show={showRecoveryModal} 
         onClose={() => setShowRecoveryModal(false)} 
         onAuthReset={() => { setUser(null); setCurrentBuilding(null); localStorage.clear(); }} 
+      />
+      <LocationPrompt 
+        isOpen={locationPrompt.show}
+        nearestBuilding={locationPrompt.building}
+        onConfirm={() => {
+          handleGPSVerification(locationPrompt.building);
+          setLocationPrompt({ show: false, building: null });
+        }}
+        onCancel={() => setLocationPrompt({ show: false, building: null })}
       />
     </div>
   );

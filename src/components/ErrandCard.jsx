@@ -65,7 +65,7 @@ export default function ErrandCard({ errand, currentBuilding, user, onClaim, onC
                   </p>
                   {isLong && (
                     <span className="text-[9px] font-black uppercase text-blue-500 mt-1 block group-hover:underline">
-                      {isExpanded ? 'Show Less ↑' : 'Show Full List ↓'}
+                      {isExpanded ? 'Show Less ↑' : 'Show More ↓'}
                     </span>
                   )}
                 </button>
