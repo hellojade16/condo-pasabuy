@@ -68,16 +68,37 @@ const [currentBuilding, setCurrentBuilding] = useState(() => {
   };
 
   useEffect(() => {
+    // 1. Keep GPS spinner off initially
     setLoadingGPS(false);
-    supabase.auth.getSession().then(({ data: { session } }) => {
+
+    const initialize = async () => {
+      // 2. Wait for Supabase to tell us who the user is
+      const { data: { session } } = await supabase.auth.getSession();
+      
       if (session) {
         setUser(session.user);
+        
+        // 3. IMMEDIATELY check for the building BEFORE opening the gates
+        const saved = localStorage.getItem('savedBuilding');
+        if (saved && saved !== "undefined" && saved !== "null") {
+          try {
+            const parsedBuilding = JSON.parse(saved);
+            setCurrentBuilding(parsedBuilding);
+          } catch (e) {
+            console.error("Storage error:", e);
+          }
+        }
       }
-      
-      setIsInitialLoading(false);
-    });
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      // 4. THE CRITICAL STEP: Only turn off the splash screen 
+      // AFTER we have checked both the user and the building.
+      setIsInitialLoading(false);
+    };
+
+    initialize();
+
+    // Listener for login/logout events
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (event === "PASSWORD_RECOVERY") {
         setShowProfile(false);
         setShowRecoveryModal(true);
@@ -93,7 +114,6 @@ const [currentBuilding, setCurrentBuilding] = useState(() => {
 
     return () => subscription.unsubscribe();
   }, []);
-
   useEffect(() => {
     if (currentBuilding) fetchErrands();
   }, [viewMode, currentBuilding]);
@@ -182,7 +202,7 @@ const [currentBuilding, setCurrentBuilding] = useState(() => {
 
           const matches = buildings.filter(b => {
             const dist = calculateDistance(myLat, myLon, Number(b.latitude), Number(b.longitude));
-            return dist <= 100; 
+            return dist <= 1000; 
           });
 
           if (matches.length === 1) {
@@ -199,18 +219,20 @@ const [currentBuilding, setCurrentBuilding] = useState(() => {
         }
       },
       (geoError) => {
-        console.warn("GPS Error Code:", geoError.code);
-        setLoadingGPS(false); 
-        if (geoError.code === 3) {
-          alert("GPS taking too long. Please select your building manually.");
-        }
-      },
-      { 
-        enableHighAccuracy: false, 
-        timeout: 8000,               
-        maximumAge: 60000           
-      }
-    );
+    console.warn("GPS Error Code:", geoError.code);
+    setLoadingGPS(false); 
+    if (geoError.code === 3) {
+      alert("GPS took too long. Using last known location or manual selection.");
+      // NEW: Still fetch buildings but use empty coords or a wider search
+      setLastScannedCoords({ lat: 0, lon: 0 }); 
+    }
+  },
+  { 
+    enableHighAccuracy: false, 
+    timeout: 15000,           
+    maximumAge: 30000          
+  }
+);
   };
 
   const fetchErrands = async () => {
@@ -252,32 +274,54 @@ const [currentBuilding, setCurrentBuilding] = useState(() => {
     }
   };
 
+ // 1. Splash Screen Guard - Shows ONLY the spinner while the session handshakes
   if (isInitialLoading) {
     return (
       <div className="h-screen bg-white flex items-center justify-center">
-         <div className="w-10 h-10 border-2 border-blue-600/20 border-t-blue-600 rounded-full animate-spin" />
+        <div className="w-10 h-10 border-2 border-blue-600/20 border-t-blue-600 rounded-full animate-spin" />
       </div>
     );
   }
+
+ // 2. Auth Guard - Consolidated for direct Feed access
   if (!user || !currentBuilding) {
     return (
       <Auth 
         user={user}
         onAuthSuccess={async (u) => { 
+          // We DON'T set InitialLoading(true) here to avoid the Locating splash
           setUser(u); 
-          const saved = localStorage.getItem('savedBuilding');
-          if (saved && saved !== "undefined" && saved !== "null") {
-            setCurrentBuilding(JSON.parse(saved));
-            return;
-          }
-          const { data: profile } = await supabase
-            .from('profiles').select('verified_building_id, buildings(id, name)')
-            .eq('id', u.id).single();
+          
+          try {
+            // 1. Try Local Storage first
+            const saved = localStorage.getItem('savedBuilding');
+            if (saved && saved !== "undefined" && saved !== "null") {
+              const parsed = JSON.parse(saved);
+              setCurrentBuilding(parsed);
+              return; // React will now transition directly to the Feed
+            }
 
-          if (profile?.buildings) {
-            setCurrentBuilding(profile.buildings);
-            localStorage.setItem('savedBuilding', JSON.stringify(profile.buildings));
-          } else handleGPSVerification(); 
+            // 2. Try Database Profile (Silent background fetch)
+            const { data: profile } = await supabase
+              .from('profiles')
+              .select('verified_building_id, buildings(id, name)')
+              .eq('id', u.id)
+              .single();
+
+            if (profile?.buildings) {
+              const b = profile.buildings;
+              setCurrentBuilding(b);
+              localStorage.setItem('savedBuilding', JSON.stringify(b));
+            } else {
+              // Only if they are a brand new user with no building records
+              console.log("New user - Auth component will now show building selection");
+            }
+          } catch (err) {
+            console.error("Auth success flow error:", err);
+          } finally {
+            // Ensure any global loading states are cleared
+            setIsInitialLoading(false);
+          }
         }} 
         nearbyBuildings={nearbyBuildings} 
         currentBuilding={currentBuilding}
@@ -286,10 +330,8 @@ const [currentBuilding, setCurrentBuilding] = useState(() => {
         lastScannedCoords={lastScannedCoords} 
       />
     );
-  } 
+  }
   
-
-
   return (
     <div className="h-screen bg-slate-50 max-w-md mx-auto shadow-2xl flex flex-col font-sans relative overflow-hidden">
       <Header 

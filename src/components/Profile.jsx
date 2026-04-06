@@ -130,23 +130,44 @@ export default function Profile({ user, onLogout, onClose, setUser, currentBuild
               </div>
             </div>
             <button 
-              onClick={async () => { 
-  if(window.confirm("Verify location again?")) { 
-    localStorage.removeItem('savedBuilding');
-    await supabase
-      .from('profiles')
-      .update({ verified_building_id: null })
-      .eq('id', user.id);
-    onClose(); 
-    onVerify(null); 
-  } 
-}}
-              className="w-10 h-10 bg-white rounded-full flex items-center justify-center shadow-sm border border-blue-100 text-blue-600 hover:bg-blue-600 hover:text-white transition-all active:scale-90"
-            >
-              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-              </svg>
-            </button>
+  onClick={async () => { 
+    if(window.confirm("Verify location again?")) { 
+      console.log("--- Start Re-verification ---");
+      console.log("Current User ID:", user?.id);
+
+      // 1. Clear Local Storage
+      localStorage.removeItem('savedBuilding');
+      console.log("LocalStorage 'savedBuilding' removed");
+
+      // 2. Attempt DB Update
+      console.log("Attempting to update DB: setting verified_building_id to null...");
+      
+      const { data, error } = await supabase
+        .from('profiles')
+        .update({ verified_building_id: null })
+        .eq('id', user.id)
+        .select(); // Adding .select() helps verify if data actually changed
+
+      if (error) {
+        console.error("DB Update ERROR:", error.message);
+        console.error("Full Error Object:", error);
+        alert("Failed to update database. Check console.");
+      } else {
+        console.log("DB Update SUCCESS. Returned data:", data);
+      }
+
+      // 3. Move to next steps
+      console.log("Closing profile and triggering onVerify...");
+      onClose(); 
+      onVerify(null); 
+    } 
+  }}
+  className="w-10 h-10 bg-white rounded-full flex items-center justify-center shadow-sm border border-blue-100 text-blue-600 hover:bg-blue-600 hover:text-white transition-all active:scale-90"
+>
+  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+  </svg>
+</button>
           </div>
         </div>
 
